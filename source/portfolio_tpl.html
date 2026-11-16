@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2d2d2d">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<title>Mahika Bandlish — Portfolio</title>
+<style>
+  :root { color-scheme: dark; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  /* the wall the lettering gets sprayed onto: landscape on wide screens, the original portrait on upright phones */
+  html { background: #2d2d2d url("__WALL_L__") center / cover no-repeat; }
+  @media (orientation: portrait) { html { background-image: url("__WALL_P__"); } }
+  body { background: transparent; }
+  /* the real artwork: hidden until the spray finishes, then shown exactly as supplied */
+  #art {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(84vw, 1700px, calc(60vh * 2.8132)); height: auto;
+    opacity: 0; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  }
+  #cv { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* the two drawings: the spray can (bottom-left) and the face (bottom-right). Transparent as drawn; each leans toward the cursor and is shaken by a small physics loop on hover */
+  .toy {
+    position: fixed; z-index: 2; perspective: 900px; cursor: pointer; opacity: 0; transition: opacity 1s ease .4s;
+    bottom: calc(clamp(16px, 4.5vh, 52px) + env(safe-area-inset-bottom, 0px));
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .toy.on { opacity: 1; }
+  #can { aspect-ratio: __CAN_AR__; height: clamp(150px, 30vh, 320px); left: calc(clamp(18px, 4vw, 64px) + env(safe-area-inset-left, 0px)); }
+  #face { aspect-ratio: __FACE_AR__; height: clamp(120px, min(24vh, 22vw), 270px); right: calc(clamp(18px, 4vw, 64px) + env(safe-area-inset-right, 0px)); }
+  .toy-tilt { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transform-origin: 50% 80%; will-change: transform; }
+  .toy-img, .toy-shadow { position: absolute; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+  .toy-img { left: 0; top: 0; width: 100%; height: 100%; will-change: transform; }
+  #face .toy-img { transform-origin: 50% 82%; }                       /* the head turns about its neck */
+  .toy-img > .layer, .rig > .layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; will-change: transform; }
+  .l-hair { transform-origin: 50% 45%; } .l-skin, .l-feat { transform-origin: 50% 55%; }
+  /* at rest the face is your original single drawing; while it shakes it is swapped for the same drawing split into layers */
+  #face .rig { visibility: hidden; } #face.rigged .rig { visibility: visible; } #face.rigged .l-full { visibility: hidden; }
+  #can .toy-shadow { left: __CAN_SH_L__; top: __CAN_SH_T__; width: __CAN_SH_W__; height: __CAN_SH_H__; will-change: transform; }
+  #face .toy-shadow { left: __FACE_SH_L__; top: __FACE_SH_T__; width: __FACE_SH_W__; height: __FACE_SH_H__; will-change: transform; }
+  /* header: four small black words, evenly spaced across the top; on hover each letter rolls up and its twin rolls in from below, one after another */
+  .site-nav { position: fixed; z-index: 5; top: 0; left: 0; right: 0; display: flex; justify-content: space-evenly; pointer-events: none;
+    padding: calc(clamp(12px, 2.6vh, 28px) + env(safe-area-inset-top, 0px)) clamp(12px, 4vw, 72px) 0; }
+  .site-nav a { pointer-events: auto; position: relative; display: inline-block; padding: 10px 8px; color: #000; text-decoration: none; -webkit-tap-highlight-color: transparent;
+    font: 800 clamp(12px, 1vw, 15px) / 1.15 "Syne", "Arial Black", Impact, "Helvetica Neue", sans-serif; letter-spacing: .26em; text-transform: uppercase;
+    filter: drop-shadow(0 .2em .22em rgba(0, 0, 0, .3)); }
+  .site-nav a .l { display: inline-block; vertical-align: top; overflow: hidden; height: 1.4em; margin-right: -.25em; }
+  .site-nav a .l i { display: block; font-style: normal; padding: 0 .25em .25em 0; transition: transform .55s cubic-bezier(.7, 0, .2, 1); transition-delay: calc(var(--i) * 32ms);
+    /* the 3D: black letter faces with a dark-grey edge stepping down and to the right, so they stand off the concrete (no white anywhere) */
+    text-shadow: .045em .045em 0 #666, .085em .085em 0 #525252, .125em .125em 0 #3e3e3e, .17em .17em 0 #2c2c2c; }
+  .site-nav a:hover .l i, .site-nav a:focus-visible .l i { transform: translateY(-100%); }
+  .site-nav a[aria-current="page"]::after { content: ""; position: absolute; left: 8px; right: calc(8px + .26em); bottom: 4px; height: 2px; background: #000; }
+  .site-nav a:focus-visible, .toy:focus-visible { outline: 2px solid #000; outline-offset: 6px; }
+  .toy { text-decoration: none; color: inherit; }
+  /* pages: the landing page is the home view; Work and About are placeholders until their content arrives */
+  body:not([data-view="home"]) #home-view { display: none; }
+  .page { position: fixed; inset: 0; z-index: 1; display: none; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #000;
+    padding: calc(clamp(76px, 13vh, 130px) + env(safe-area-inset-top, 0px)) clamp(20px, 5vw, 72px) calc(48px + env(safe-area-inset-bottom, 0px)); }
+  body[data-view="work"] #work-page, body[data-view="project"] #project-page, body[data-view="about"] #about-page, body[data-view="contact"] #contact-page { display: block; animation: pageIn .5s ease both; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .page h2 { margin: 0; font: 800 clamp(44px, 9vw, 120px) / .95 "Syne", "Arial Black", Impact, sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+  .page p { margin: 18px 0 0; font: 700 clamp(13px, 1.3vw, 17px) / 1.5 "Syne", "Arial Black", Impact, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+  @media (prefers-reduced-motion: reduce) { .site-nav a .l i { transition: none; } body[data-view="work"] #work-page, body[data-view="project"] #project-page, body[data-view="about"] #about-page, body[data-view="contact"] #contact-page { animation: none; } .piece { transition: none; } }
+  /* work page: the lettering pasted up on the wall as 3D pieces: thick extruded letters that lean toward the cursor; each is a link to its project */
+  .board { position: relative; width: min(100%, calc((100vh - 190px) * 1.6)); aspect-ratio: 16 / 10; margin: 0 auto; }
+  .piece { position: absolute; left: var(--x); top: var(--y); width: var(--w); aspect-ratio: var(--ar); z-index: var(--z); display: block; perspective: 800px; transform: rotate(var(--r));
+    transition: transform .35s cubic-bezier(.2, .7, .2, 1); -webkit-tap-highlight-color: transparent; }
+  .piece:hover, .piece:focus-visible { z-index: 30; transform: rotate(var(--r)) translateY(-.6vw) scale(1.04); outline: none; }
+  .piece:focus-visible .f { filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 8px #fff); }
+  .pt { position: absolute; inset: 0; display: block; transform-style: preserve-3d; will-change: transform; }
+  .pt i { position: absolute; inset: 0; display: block; background: var(--src) center / 100% 100% no-repeat; pointer-events: none; }
+  .pt .d { filter: brightness(.16); }                                          /* the dark sides of the letters */
+  .pt .d1 { transform: translateZ(-3px); } .pt .d2 { transform: translateZ(-6px); } .pt .d3 { transform: translateZ(-9px); }
+  .pt .d4 { transform: translateZ(-12px); } .pt .d5 { transform: translateZ(-15px); } .pt .d6 { transform: translateZ(-18px); }
+  .pt .sh { transform: translateZ(-30px) translate(9px, 15px); filter: brightness(0) blur(6px); opacity: .42; }
+  /* project page (placeholder until each project's content arrives) */
+  .back { display: inline-block; color: #000; text-decoration: none; padding: 6px 0; font: 800 clamp(11px, .9vw, 13px) / 1 "Syne", "Arial Black", Impact, sans-serif; letter-spacing: .22em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: border-color .25s; }
+  .back:hover, .back:focus-visible { border-color: #000; outline: none; }
+  #project-page h2 { margin-top: 18px; }
+  @media (max-width: 760px) {
+    .board { width: 100%; aspect-ratio: auto; display: grid; gap: 30px; padding: 8px 6px 30px; }
+    .piece { position: relative; left: auto; top: auto; width: 88%; z-index: auto; justify-self: var(--j); }
+  }
+  @media (max-width: 700px) { #art { width: min(92vw, calc(60vh * 2.8132)); } }
+  @media (prefers-reduced-motion: reduce) { #art { opacity: 1; } #cv { display: none; } }
+</style>
+<noscript><style>#art { opacity: 1; }</style></noscript>
+</head>
+<body data-view="home">
+<h1 class="sr">Mahika Bandlish — Portfolio</h1>
+<nav class="site-nav" aria-label="Main"><a href="#/"><span>Home</span></a><a href="#/work"><span>Work</span></a><a href="#/about"><span>About</span></a><a href="#/contact"><span>Contact</span></a></nav>
+<div id="home-view">
+<img id="art" alt="PORTFOLIO" width="2048" height="728" src="__ART__">
+<canvas id="cv" aria-hidden="true"></canvas>
+<a id="can" class="toy" href="#/work" aria-label="Work (spray can with the name Mahika)"><div class="toy-tilt"><img class="toy-shadow" alt="" draggable="false" src="__CAN_SHADOW__"><img class="toy-img" alt="" draggable="false" src="__CAN__"></div></a>
+<a id="face" class="toy" href="#/about" aria-label="About (illustrated face)"><div class="toy-tilt"><img class="toy-shadow" alt="" draggable="false" src="__FACE_SHADOW__"><div class="toy-img"><img class="layer l-full" alt="" draggable="false" src="__FACE__"><div class="rig"><img class="layer l-hair" alt="" draggable="false" src="__FACE_HAIR__"><img class="layer l-skin" alt="" draggable="false" src="__FACE_SKIN__"><img class="layer l-feat" alt="" draggable="false" src="__FACE_FEAT__"><img class="layer l-earl" alt="" draggable="false" style="transform-origin: __EARL_OX__" src="__FACE_EARL__"><img class="layer l-earr" alt="" draggable="false" style="transform-origin: __EARR_OX__" src="__FACE_EARR__"></div></div></div></a>
+</div>
+<section id="work-page" class="page" aria-label="Work"><div class="board">
+<a class="piece" href="#/work/team-e" aria-label="team-e" style="--x:5.000%;--y:3.500%;--w:41.250%;--r:-3deg;--z:2;--ar:3.6667;--j:start;--src:url(__L6__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/tea-party-gone-wrong" aria-label="Tea Party Gone Wrong" style="--x:55.938%;--y:0.748%;--w:40.000%;--r:4deg;--z:3;--ar:1.7065;--j:end;--src:url(__L1__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/the-appetite" aria-label="The Appetite" style="--x:10.000%;--y:20.609%;--w:47.500%;--r:-4deg;--z:4;--ar:2.3913;--j:start;--src:url(__L3__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/untitled-oval" aria-label="Untitled" style="--x:78.125%;--y:44.546%;--w:21.250%;--r:3deg;--z:3;--ar:1.7078;--j:center;--src:url(__L8__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/slow-state" aria-label="Slow State" style="--x:34.375%;--y:50.777%;--w:43.750%;--r:-3deg;--z:5;--ar:3.2641;--j:end;--src:url(__L4__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/ms-bean" aria-label="Ms Bean" style="--x:1.875%;--y:55.571%;--w:32.500%;--r:5deg;--z:6;--ar:1.5358;--j:start;--src:url(__L2__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/killerx" aria-label="KillerX" style="--x:45.000%;--y:73.962%;--w:38.750%;--r:2deg;--z:4;--ar:4.7414;--j:end;--src:url(__L7__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+<a class="piece" href="#/work/the-label-jenn" aria-label="The Label Jenn" style="--x:28.750%;--y:88.480%;--w:55.000%;--r:-2deg;--z:7;--ar:7.971;--j:center;--src:url(__L5__)"><span class="pt"><i class="sh"></i><i class="d d1"></i><i class="d d2"></i><i class="d d3"></i><i class="d d4"></i><i class="d d5"></i><i class="d d6"></i><i class="f"></i></span></a>
+</div></section>
+<section id="about-page" class="page" aria-label="About"><h2>About</h2><p>Coming soon</p></section>
+<section id="project-page" class="page" aria-label="Project">
+  <a class="back" href="#/work">&larr; Back to work</a>
+  <h2 id="project-title">Project</h2>
+  <p>Coming soon</p>
+</section>
+<section id="contact-page" class="page" aria-label="Contact"><h2>Contact</h2><p>Coming soon</p></section>
+<script id="toys-js">
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /* Light, smooth wobbles: slow steady motion with no random jitter that eases in when the cursor arrives and eases
+     out when it leaves. The lean toward the cursor is eased the same way, so nothing ever steps or restarts. */
+  const toy = (id, fadeMs, hz0, shake, extra, attack = .16, release = .35) => {
+    const el = document.getElementById(id), tilt = el.firstElementChild, img = el.querySelector(".toy-img"), shadow = el.querySelector(".toy-shadow");
+    const fx = extra ? extra(el) : null;
+    setTimeout(() => el.classList.add("on"), fadeMs);                      // gentle fade-in
+    if (reduce) return;
+    if (fx) fx.prime();
+    let amp = 0, target = 0, t = 0, phase = 0, last = 0, raf = 0, lx = 0, ly = 0, tx = 0, ty = 0;
+    const frame = now => {
+      const dt = Math.min((now - last) / 1000, .05); last = now; t += dt;
+      amp += (target - amp) * (1 - Math.exp(-dt / (target ? attack : release)));
+      lx += (tx - lx) * (1 - Math.exp(-dt / .14)); ly += (ty - ly) * (1 - Math.exp(-dt / .14));
+      const shaking = target || amp > .002, leaning = Math.abs(tx - lx) > .01 || Math.abs(ty - ly) > .01 || Math.abs(lx) > .01 || Math.abs(ly) > .01;
+      let m = null, om = 0;
+      if (shaking) { const hz = hz0 * (.55 + .45 * Math.min(1, amp * 1.3)); phase += dt * hz * 6.2832; om = hz * 6.2832; m = shake(phase, amp, t, el.clientHeight); }   // slows as it dies away
+      const moving = fx ? fx.step(dt, m, el.clientHeight, om) : false;     // secondary motion (hair, earrings) can outlast the shake itself
+      if (!shaking && !leaning && !moving) { amp = 0; raf = 0; tilt.style.transform = img.style.transform = shadow.style.transform = ""; if (fx) fx.rest(); return; }
+      tilt.style.transform = leaning ? "rotateX(" + ly.toFixed(2) + "deg) rotateY(" + lx.toFixed(2) + "deg)" : "";
+      if (m) {
+        img.style.transform = "translate3d(" + m.x.toFixed(2) + "px," + m.y.toFixed(2) + "px,0)" + (m.ry ? " rotateY(" + m.ry.toFixed(2) + "deg)" : "") + " rotate(" + m.rot.toFixed(2) + "deg)";
+        shadow.style.transform = "translate3d(" + (m.x * .4).toFixed(2) + "px," + (m.y * .4).toFixed(2) + "px,0)";
+      } else img.style.transform = shadow.style.transform = "";
+      raf = requestAnimationFrame(frame);
+    };
+    const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+    const set = v => { target = v; kick(); };
+    el.addEventListener("pointerenter", () => set(1));
+    el.addEventListener("pointerleave", () => set(0));
+    el.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") { set(1); setTimeout(() => set(0), 900); } });   // touch: tap to shake
+    const lean = (x, y) => {                                              // depth: leans toward the cursor when it is nearby
+      const r = el.getBoundingClientRect(), dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2), reach = 460;
+      const k = Math.max(0, 1 - Math.hypot(dx, dy) / reach), cl = v => clamp(v, -1, 1);
+      tx = cl(dx / reach) * 14 * k; ty = -cl(dy / reach) * 9 * k; kick();
+    };
+    addEventListener("pointermove", e => { if (e.pointerType === "mouse") lean(e.clientX, e.clientY); }, { passive: true });
+    document.documentElement.addEventListener("mouseleave", () => { tx = ty = 0; kick(); });
+  };
+
+  /* The face is split into layers (hair, face, features, two earrings) so a head shake has real secondary motion:
+     the features slide further than the face, which slides further than the hair, which lags a beat behind and
+     overshoots; the earrings are little pendulums that swing with each turn and keep swinging after the head stops. */
+  const faceFx = el => {
+    const q = n => el.querySelector(".l-" + n), hair = q("hair"), skin = q("skin"), feat = q("feat"), eL = q("earl"), eR = q("earr");
+    let hr = 0, hv = 0, hx = 0, hu = 0, aL = 0, vL = 0, aR = 0, vR = 0, rigged = false;
+    const rig = on => { if (on !== rigged) { rigged = on; el.classList.toggle("rigged", on); } };
+    return {
+      prime() { el.querySelectorAll(".rig img").forEach(i => i.decode && i.decode().catch(() => {})); },     // have the layers ready before they are needed
+      step(dt, m, H, om) {
+        const s = m ? m.s : 0, xa = m ? m.x : 0, sd = s * .012 * H;
+        const ax = -(xa + sd) * om * om, L = .06 * H, n = Math.max(1, Math.ceil(dt / .01)), h = dt / n;
+        for (let i = 0; i < n; i++) {
+          hv += (144 * ((m ? m.rot : 0) * 1.1 - hr) - 2 * .55 * 12 * hv) * h; hr += hv * h;                     // hair roll: a beat late, slight overshoot
+          hu += (121 * (s * .006 * H - hx) - 2 * .55 * 11 * hu) * h; hx += hu * h;                               // hair side-sway
+          vL += (-441 * aL - 2 * .3 * 21 * vL + .26 * ax / L) * h; aL = clamp(aL + vL * h, -.35, .35);          // earrings: pendulums hung from the ears
+          vR += (-506 * aR - 2 * .32 * 22.5 * vR + .26 * ax / L) * h; aR = clamp(aR + vR * h, -.35, .35);
+        }
+        const moving = !!m || Math.abs(aL) > .003 || Math.abs(vL) > .05 || Math.abs(aR) > .003 || Math.abs(vR) > .05 || Math.abs(hr) > .02 || Math.abs(hv) > .1 || Math.abs(hx) > .05 || Math.abs(hu) > .3;
+        if (!moving) return false;
+        rig(true);
+        hair.style.transform = "translate3d(" + hx.toFixed(2) + "px,0,0) rotate(" + hr.toFixed(2) + "deg)";
+        skin.style.transform = "translate3d(" + sd.toFixed(2) + "px,0,0)";
+        feat.style.transform = "translate3d(" + (s * .026 * H).toFixed(2) + "px,0,0)";
+        eL.style.transform = "rotate(" + (aL * 57.296).toFixed(2) + "deg)"; eR.style.transform = "rotate(" + (aR * 57.296).toFixed(2) + "deg)";
+        return true;
+      },
+      rest() { rig(false); hr = hv = hx = hu = aL = vL = aR = vR = 0; [hair, skin, feat, eL, eR].forEach(e => e.style.transform = ""); }
+    };
+  };
+
+  // the spray can: a light rock, up and down with a slight swing
+  toy("can", 60, 4.6, (phase, amp, t, H) => {
+    const mod = .92 + .08 * Math.sin(t * 1.9), y = Math.sin(phase) * .02 * H * mod * amp;
+    return { x: Math.sin(phase * .5 + .6) * .006 * H * amp - y * .2, y, rot: Math.sin(phase + .9) * 1.2 * amp };
+  });
+  // the face: a light, slow shake of the head as if saying "no": it turns a few degrees left and right about the neck, with a hint of roll and a tiny bob
+  toy("face", 260, 2.5, (phase, amp, t, H) => {
+    const mod = .95 + .05 * Math.sin(t * 1.7), s = Math.sin(phase) * mod * amp;
+    return { x: s * .005 * H, y: Math.sin(phase * 2 + .4) * .002 * H * amp, ry: s * 4, rot: s * .8, s };
+  }, faceFx, .24, .5);
+})();
+</script>
+<script id="router-js">
+(() => {
+  const titles = { home: "Mahika Bandlish — Portfolio", work: "Mahika Bandlish — Work", about: "Mahika Bandlish — About", contact: "Mahika Bandlish — Contact" };
+  const links = [...document.querySelectorAll(".site-nav a")];
+  const PROJECTS = {"team-e":"team-e","tea-party-gone-wrong":"Tea Party Gone Wrong","the-appetite":"The Appetite","untitled-oval":"Untitled","slow-state":"Slow State","ms-bean":"Ms Bean","killerx":"KillerX","the-label-jenn":"The Label Jenn"};
+  const route = () => {                                             // #/ = landing page, #/work, #/work/<project>, #/about, #/contact
+    const h = location.hash.replace(/^#\/?/, "").replace(/\/$/, "").toLowerCase(), pm = /^work\/([a-z0-9-]+)$/.exec(h), slug = pm && PROJECTS[pm[1]] ? pm[1] : null;
+    const v = slug ? "project" : h in titles && h !== "home" ? h : h.startsWith("work/") ? "work" : "home";     // an unknown project falls back to the Work wall
+    if (slug) { document.getElementById("project-title").textContent = PROJECTS[slug]; document.title = "Mahika Bandlish — " + PROJECTS[slug]; } else document.title = titles[v];
+    document.body.dataset.view = v;
+    const cur = v === "project" ? "work" : v;                       // a project still counts as being in WORK
+    links.forEach(a => a.getAttribute("href") === (cur === "home" ? "#/" : "#/" + cur) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+    document.querySelectorAll(".page").forEach(p => { p.scrollTop = 0; });
+  };
+  addEventListener("hashchange", route); route();
+  // header hover: split each word into letters, each holding two stacked copies, so the CSS can roll them up one after another
+  links.forEach(a => {
+    const w = a.firstElementChild, word = w.textContent; a.setAttribute("aria-label", word); w.setAttribute("aria-hidden", "true"); w.textContent = "";
+    [...word].forEach((ch, i) => {
+      const l = document.createElement("span"); l.className = "l"; l.style.setProperty("--i", i);
+      for (let k = 0; k < 2; k++) { const c = document.createElement("i"); c.textContent = ch; l.appendChild(c); }
+      w.appendChild(l);
+    });
+  });
+})();
+</script>
+<script id="pieces-js">
+(() => {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  /* each piece leans toward the cursor when it is near (eased, so nothing steps); the stacked dark layers behind it then show as thickness */
+  const S = [...document.querySelectorAll(".piece")].map(el => ({ el, t: el.querySelector(".pt"), x: 0, y: 0, tx: 0, ty: 0 }));
+  let raf = 0, last = 0;
+  const frame = now => {
+    const dt = Math.min((now - last) / 1000, .05); last = now; let live = false;
+    for (const s of S) {
+      s.x += (s.tx - s.x) * (1 - Math.exp(-dt / .14)); s.y += (s.ty - s.y) * (1 - Math.exp(-dt / .14));
+      const on = Math.abs(s.x) > .01 || Math.abs(s.y) > .01 || Math.abs(s.tx - s.x) > .01 || Math.abs(s.ty - s.y) > .01; live = live || on;
+      s.t.style.transform = on ? "rotateX(" + s.y.toFixed(2) + "deg) rotateY(" + s.x.toFixed(2) + "deg)" : "";
+    }
+    raf = live ? requestAnimationFrame(frame) : 0;
+  };
+  const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  addEventListener("pointermove", e => {
+    if (e.pointerType !== "mouse") return;
+    if (document.body.dataset.view !== "work") { for (const s of S) s.tx = s.ty = 0; kick(); return; }          // away from the Work page: settle upright
+    for (const s of S) {
+      const r = s.el.getBoundingClientRect(); if (!r.width) continue;
+      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), reach = 560, k = Math.max(0, 1 - Math.hypot(dx, dy) / reach), cl = v => Math.max(-1, Math.min(1, v));
+      s.tx = cl(dx / reach) * 16 * k; s.ty = -cl(dy / reach) * 11 * k;
+    }
+    kick();
+  }, { passive: true });
+  document.documentElement.addEventListener("mouseleave", () => { for (const s of S) s.tx = s.ty = 0; kick(); });
+})();
+</script>
+<script>
+(() => {
+  /* ---------- tweak here ---------- */
+  const CONFIG = {
+    pauseMs: 300,         // empty black screen before anything happens
+    hissMs: 250,          // aerosol mist only, before paint lands
+    handSpeed: 7.2,       // how fast the hand moves. Lower = slower, longer animation
+    hopWeight: 20,        // time cost of lifting the can between strokes (higher = longer pause)
+    endSlow: 0.45,        // strokes start and finish slower (1 = constant speed)
+    settleMs: 350,        // final pass: faint overspray settles into the exact artwork
+    tailMs: 250,          // lets the final mist clear
+    paintAlpha: 0.92,     // strength of each spray puff
+    brushSize: 3.8,       // spray width relative to the letter's thickness (bigger = softer, wider spill)
+    stampSpacing: 0.065,   // puffs per stroke length (lower = denser, heavier)
+    handSmoothMs: 3,      // small = follows the stroke exactly
+    softMist: 2,          // soft mist puffs per frame
+    specks: 7             // tiny flying paint specks per frame
+  };
+
+  /* Strokes traced from the artwork itself: letter by letter, each stroke = [x, y, brushRadius, ...] in 2048px space.
+     Brush radius follows how thick the letter is at that point. */
+  const STROKES = [{"l":0,"k":"s","p":[125,207,60,125,213,58,125,219,55,125,225,52,125,231,49,126,237,46,127,243,44,129,249,42,131,254,40,133,260,39,136,265,38,139,270,37,143,275,37,146,280,37,149,286,37,153,291,37,156,296,37,159,301,37,162,306,37,165,312,38,167,317,39,169,323,40,171,329,41,171,335,43,171,341,46,171,347,48,171,353,51,171,359,55,171,365,57,170,371,59,172,377,60,176,382,60,180,386,59,184,390,57,189,395,55,193,399,52,197,403,50,202,408,48,206,412,46,210,417,44,213,421,42,217,426,41,220,432,40,223,437,39,226,442,38,230,447,37,233,452,36,236,457,35,238,463,35,241,468,34,244,474,34,248,479,34,251,483,34,256,488,35,260,492,36,264,497,37,266,502,37,268,508,37,269,514,36,271,520,35,272,526,35,274,531,34,276,537,33,278,543,33,280,549,33,282,554,33,284,560,33,286,566,33,288,572,32,288,578,32,287,584,30,285,589,29]},{"l":0,"k":"s","p":[127,205,60,133,204,58,138,203,56,145,203,53,151,203,51,157,203,49,163,203,48,169,204,46,174,206,45,180,207,45,186,208,44,192,210,44,198,212,43,204,213,43,210,214,43,215,216,43,221,218,43,227,220,43,233,221,43,239,223,43,244,225,42,250,226,42,256,228,42,262,230,42,267,232,42,273,234,42,279,236,42,284,238,42,290,240,42,296,242,42,302,244,43,307,246,43,313,248,43,318,250,43,324,253,44,329,256,44,335,258,45,340,262,45,345,265,45,350,269,45,352,274,45,352,276,45,349,271,45,345,267,45,340,262,44,335,259,44,330,256,44,325,253,44,319,251,43,313,249,43,308,246,43,302,244,43,296,243,42,291,240,42,285,238,42,279,236,42,274,234,42,268,232,42,262,230,42,257,228,42,251,227,42,245,225,43,239,223,43,234,221,43,228,220,43,222,218,43,216,217,43,210,215,43,204,214,43,198,212,43,193,210,44,187,209,44,181,207,44,175,206,45,169,204,46,163,203,47,157,203,49,151,203,50,145,204,51,140,207,51,136,211,51,131,215,51,128,220,50,127,226,48,127,232,46,127,238,44,128,244,43,129,250,41,131,256,40,134,261,39,137,266,38,140,271,37,143,276,37,147,281,37,150,286,37,153,291,37,156,297,37,160,302,37,162,307,37,165,312,38,168,318,39,169,324,40,171,330,41,171,336,43,171,342,46,171,348,49,171,354,52,171,360,55,171,366,57,172,372,59,174,377,59,178,382,59,182,386,58,186,390,56,191,395,55,195,399,54,199,403,53,196,400,54,192,396,55,188,392,56,183,387,58,179,383,59,175,379,61,171,375,62]},{"l":0,"k":"s","p":[167,373,60,161,373,58,155,373,55,149,374,51,143,375,48,137,375,44,131,375,41,125,375,39]},{"l":0,"k":"drip","p":[81,253,6,81,259,6,81,266,6,81,272,6,81,279,6,81,285,6,81,292,6,81,298,6,81,304,6,81,311,6,81,317,6,81,324,6,81,330,6,81,337,6,81,343,6]},{"l":0,"k":"drip","p":[123,413,6,123,420,6,123,427,6,123,434,6,123,442,6,123,449,6,123,456,6,123,463,6]},{"l":0,"k":"drip","p":[142,433,6,142,439,6,142,446,6,142,452,6,142,458,6,142,465,6,142,471,6,142,477,6,142,484,6,142,490,6,142,497,6,142,503,6,142,509,6,142,516,6,142,522,6,142,528,6,142,535,6,142,541,6]},{"l":0,"k":"drip","p":[159,433,6,159,440,6,159,448,6,159,455,6,159,462,6,159,469,6,159,476,6,159,484,6,159,491,6]},{"l":0,"k":"t","p":[73,129,9,76,135,10,76,142,11,74,149,11,71,155,11,68,162,10,66,168,10,63,175,9,61,181,8,59,188,8,59,195,8,59,203,8,61,209,8]},{"l":0,"k":"t","p":[111,142,8,104,143,8,97,142,9,90,143,12,83,143,14]},{"l":0,"k":"t","p":[247,363,10,254,365,11,261,367,13,268,365,15,275,362,15,281,359,16,288,356,16,294,353,16,301,349,16,307,345,16,313,341,15,319,337,15,326,334,14,332,330,12,339,329,10,346,327,8,353,325,8]},{"l":0,"k":"t","p":[389,434,8,395,431,8,401,428,8,408,424,8,414,421,8,421,418,9,427,414,10,434,411,11,440,408,12,447,405,12,453,401,13,460,399,13,467,398,12,474,400,10,481,401,9]},{"l":0,"k":"t","p":[287,622,8,280,626,8,273,626,8,268,621,8]},{"l":0,"k":"t","p":[262,654,8,267,648,8,269,640,8,272,633,8]},{"l":1,"k":"s","p":[351,270,46,347,266,46,342,263,45,337,260,45,331,257,44,326,254,44,320,252,44,315,249,43,309,247,43,304,245,43,298,243,43,292,241,43,287,239,43,281,237,42,275,235,42,270,233,42,264,231,42,258,229,42,253,227,42,247,226,42,241,224,42,235,222,42,230,220,43,224,219,43,218,217,43,212,216,43,206,214,43,201,213,44,195,211,44,189,209,44,183,208,44,177,206,45,172,205,46,166,204,47,160,203,48,154,203,49,148,203,50,142,205,51,137,209,51,133,213,51,129,218,50,127,223,49,127,229,47,127,235,45,127,241,43,128,247,42,130,253,40,132,258,39,135,264,38,138,269,37,142,274,37,145,279,37,148,284,37,152,289,37,155,294,37,158,299,37,161,304,37,164,310,37,166,315,38,169,321,39,170,326,40,171,332,42,171,338,44,171,344,47,171,350,50,171,356,53,171,362,56,171,368,58,172,374,60,174,380,60,178,384,59,182,388,58,187,393,56,191,397,53,195,401,51,199,405,49,204,410,47,208,414,45,211,419,43,215,424,42,218,429,40,221,434,39,225,439,38,228,444,37,231,449,37,234,454,36,237,460,35,239,465,34,242,470,34,245,475,34,249,480,34,253,485,33,258,489,33,263,491,32,269,491,31,275,490,30,280,487,29,285,483,28,290,480,27,295,476,28,300,473,30,305,470,32,310,467,35,316,464,38,321,463,40,327,464,41,332,468,42,335,473,42,340,477,42,344,482,41,348,486,40,352,490,40,357,494,39,362,497,38,367,500,37,373,503,36,378,506,34,384,508,33,389,510,32,395,512,32,400,514,31,394,512,32,388,510,32,383,508,33,377,505,34,372,503,36,367,500,37,362,497,38,357,493,39,352,490,40,347,485,41,343,481,41,339,477,42,335,472,42,332,467,42,329,462,41,329,456,40,329,450,39,329,444,37,329,438,35,331,432,32,332,426,30,334,421,28,336,415,27,338,409,25,341,404,23,344,399,22,347,393,21,350,388,20,353,383,19,357,378,18,360,374,17,364,369,17,367,364,16,371,359,15,374,354,15,378,349,14,382,345,13,386,340,13,389,335,12,393,331,12,397,326,11,401,321,11,405,317,12,410,314,14,416,312,16,422,311,19,428,311,22,434,311,26,440,310,29,446,309,32,452,309,35,458,309,37,463,311,38,468,315,39,473,319,39,477,323,39,481,327,38,485,331,38,490,336,38,494,340,37,497,345,37,501,350,38,504,355,38,508,360,38,511,365,39,515,369,40,519,373,40,524,377,41,529,381,41,533,385,42,537,389,42,541,394,41,543,400,40,543,406,39,543,412,37,545,418,36,546,420,36,544,415,37,543,409,38,543,403,40,543,397,42,542,391,43,538,386,43,533,383,43,528,380,42,523,376,41,519,372,40,514,368,39,510,364,39,507,359,38,504,354,38,500,349,38,497,344,37,493,339,37,489,335,38,485,331,38,480,326,38,476,322,39,472,318,39,467,314,39,463,310,39,457,307,38,451,307,36,446,308,33,440,310,30,434,311,26,428,311,22,422,311,19,416,312,16,410,314,14,405,317,12,401,322,11,397,326,11,393,331,12,389,335,12,386,340,13,382,344,13,378,349,14,374,354,15,371,359,15,368,364,16,364,369,17,360,374,17,357,378,18,353,383,19,350,388,20,347,393,21,344,399,22,341,404,23,339,409,25,336,415,26,334,421,28,332,426,30,331,432,32,329,438,35,328,444,36,326,449,37,323,454,38,319,459,37,315,463,36,310,467,34,305,470,32,300,473,30,295,476,28,290,479,27,285,483,28,280,487,29,275,490,30,269,491,31,263,491,32,257,489,33,253,485,33,249,480,34,245,475,34,242,470,34,239,465,34,237,460,35,234,454,36,231,449,37,228,444,37,225,439,38,221,434,39,218,429,40,215,424,42,211,419,43,208,414,45,204,410,47,199,405,49,195,401,51,191,397,53,187,393,56,182,388,58,178,384,59,174,380,60,172,374,60,171,368,58,171,362,56,171,356,53,171,350,50,171,344,47,171,338,44,171,332,42,170,326,40,169,320,39,166,315,38,164,309,37,161,304,37,158,299,37,155,294,37,152,289,37,148,284,37,145,279,37,142,274,37,138,269,38,135,264,38,132,258,39,130,253,40,128,247,42,127,241,43,127,235,45,127,229,47,127,223,49,129,218,50,133,213,51,137,209,51,142,205,51,148,203,50,154,203,49,160,203,48,166,204,47,172,205,46,177,206,45,183,207,44,189,209,44,195,211,44,201,213,44,207,214,43,212,215,43,218,217,43,224,219,43,230,220,43,235,222,42,241,224,42,247,226,42,253,227,42,258,229,42,264,231,42,270,233,42,275,235,42,281,237,42,287,239,43,292,241,43,298,243,43,304,245,43,309,247,43,315,249,43,321,251,44,326,254,44,331,257,44,337,260,45,342,263,45,347,266,46,351,270,46]},{"l":1,"k":"drip","p":[419,546,6,419,554,6,419,562,6,419,570,6,419,577,6,419,585,6,419,593,6]},{"l":1,"k":"t","p":[535,462,8,540,467,9,547,468,9,554,466,8,560,462,8,566,458,8,571,453,8]},{"l":1,"k":"t","p":[622,590,8,627,585,8,631,579,8,634,573,8,638,567,9]},{"l":1,"k":"t","p":[428,543,8,433,538,9,438,533,11,443,528,13,449,523,15,455,520,16,462,519,16,470,518,16,477,517,15,484,515,14,491,514,13,498,511,12,505,509,12,512,507,11,519,507,11]},{"l":1,"k":"t","p":[613,329,8,620,329,8,627,329,10,635,330,12,642,330,14,648,326,15,655,323,15,661,319,14,667,315,14,673,311,13,679,307,11,685,302,10,692,299,8,698,296,8,704,291,8,710,286,8,715,281,8,720,276,8,726,272,8,732,268,8,739,266,8]},{"l":1,"k":"t","p":[543,475,12,539,483,11,535,490,10,529,496,9,523,502,9]},{"l":2,"k":"s","p":[524,193,51,521,198,49,519,204,48,519,210,45,519,216,43,519,222,41,519,228,39,520,234,37,522,240,35,525,245,34,527,251,33,530,256,32,533,261,31,536,267,31,539,272,30,542,277,29,545,283,28,548,288,28,551,293,27,554,299,26,557,304,26,560,309,25,563,315,25,566,320,24,569,325,24,571,331,25,573,337,26,575,342,27,577,348,30,578,354,33,580,360,37,581,366,40,584,371,43]},{"l":2,"k":"s","p":[527,191,50,533,191,49,539,191,47,545,191,45,551,192,43,557,193,41,562,194,40,568,196,40,574,199,39,579,201,39,585,203,39,591,205,39,596,208,39,601,211,39,607,213,39,612,216,39,618,218,39,624,220,39,629,223,39,634,226,38,640,229,38,645,231,38,650,234,38,656,237,38,660,241,38,665,244,37,670,248,37,675,251,37,680,255,37,682,256,37,677,252,37,672,249,37,667,246,37,662,242,38,657,239,38,652,235,38,647,233,38,642,230,38,636,227,38,631,224,39,626,221,39,620,219,39,615,216,39,609,214,39,604,211,39,598,209,39,593,206,39,587,204,39,581,202,39,576,199,39,570,197,39,565,195,40,559,193,41,553,193,42,547,193,43,541,193,44,535,193,45,529,196,46,525,200,46,521,204,45,519,210,44,519,216,42,519,222,40,519,228,39,521,234,37,522,240,35,525,245,34,527,251,33,530,256,32,533,261,31,536,267,31,539,272,30,542,277,29,545,282,28,548,288,28,551,293,27,554,299,26,557,304,26,560,309,25,563,314,25,566,319,24,568,325,24,571,330,25,573,336,26,575,342,27,576,348,29,578,353,32,580,359,36,584,364,39,588,368,42,592,373,45,587,373,46]},{"l":2,"k":"s","p":[587,373,47,592,375,45,596,380,43,598,386,40,600,392,37,602,398,34,605,403,32,607,409,31,610,414,30,614,419,29,617,424,29,621,429,29,625,434,29,628,439,29,631,445,29,635,450,30,638,455,30,642,460,31,645,465,32,648,470,32,651,476,33,654,481,34,657,487,35,660,492,35,662,498,35,663,504,34,661,510,33,659,516,31,657,522,29,655,527,28]},{"l":2,"k":"s","p":[601,374,40,607,375,37,613,375,34,619,375,31,625,376,28,631,377,26,637,377,25,643,377,25,649,377,25,655,377,26,661,377,27,667,377,28,673,379,29,679,379,30,685,379,32,691,380,33,697,381,34,703,383,36,709,383,37,715,383,39,721,384,39,726,387,40,732,390,40,737,393,40,743,395,41,748,397,41,754,399,42,760,401,43,766,403,43,771,406,45,777,408,46,782,411,47,787,414,48,792,417,48,798,420,48,802,424,46,806,429,44,809,434,42,813,438,39,817,443,37,821,447,35,825,451,34,830,456,34,834,460,33,839,464,33,844,467,33,848,471,32,853,475,32,857,479,32,862,483,32,867,487,32,871,491,32,876,496,32,880,500,32,885,504,32,889,507,31,894,512,31,898,516,31,903,519,31,907,524,32,912,528,32,916,532,32,920,536,32,925,540,32,930,544,32,935,548,33,939,551,33,944,555,33,949,559,34,954,563,35,959,566,36,964,569,37,970,571,38,975,573,40]},{"l":2,"k":"drip","p":[723,286,6,723,293,6,723,299,6,723,306,6,723,313,6,723,319,6,723,326,6,723,333,6,723,339,6,723,346,6]},{"l":2,"k":"drip","p":[772,459,6,772,465,6,772,472,6,772,478,6,772,485,6,772,491,6,772,498,6,772,504,6,772,511,6,772,517,6,772,524,6,772,530,6,772,537,6,772,543,6,772,550,6,772,556,6,772,563,6,772,569,6]},{"l":2,"k":"drip","p":[782,459,6,782,466,6,782,473,6,782,480,6,782,487,6,782,494,6,782,501,6]},{"l":2,"k":"t","p":[787,279,8,794,281,9,801,283,11,808,284,15,815,286,18,823,288,21,829,285,22,835,280,23,841,275,23,846,270,21,854,268,18,861,267,15,868,266,11,875,264,9]},{"l":2,"k":"t","p":[823,343,8,821,351,8,821,360,8,816,367,8]},{"l":2,"k":"t","p":[737,342,8,744,341,8,751,341,9,758,340,11,764,337,12,770,334,13,777,331,13,783,327,14,789,324,14,795,320,14,801,317,15,807,312,15,812,307,16,815,301,17,818,295,18]},{"l":2,"k":"t","p":[826,369,8,831,374,8,835,380,8,840,385,8,845,391,8,850,396,9,855,401,11,859,406,12,864,411,13,871,414,13,878,416,12,885,417,10,892,419,9,899,421,8,905,423,8]},{"l":3,"k":"s","p":[657,238,38,661,242,37,666,245,37,671,249,36,677,252,35,683,253,33,689,252,31,694,250,28,698,246,24,703,241,21,707,237,19,711,233,18,716,229,17,722,227,18,728,227,19,734,227,21,740,227,23,746,228,25,752,229,28,758,230,30,764,231,33,770,232,35,776,234,37,782,235,38,788,235,39,793,234,38,798,230,37,802,226,35,807,222,33,812,219,31,818,216,29,823,214,28,829,213,27,835,211,27,841,210,27,847,209,27,853,208,27,859,207,27,865,207,28,871,206,28,877,205,29,883,205,30,889,205,31,895,205,32,901,206,34,907,207,36,913,206,37,919,204,37,924,201,37,930,200,35,936,199,34,942,198,32,948,197,31,954,197,31,960,197,30,966,197,30,972,197,31,978,196,31,984,195,31,990,195,32,996,195,32,1002,195,33,1008,195,33,1015,195,34,1021,195,35,1027,195,36,1033,195,37,1039,194,38,1045,193,38,1051,193,39,1057,193,39,1063,193,39,1069,193,39,1075,192,39,1081,190,38,1086,188,37,1092,186,36,1098,184,35,1104,183,33,1110,181,32,1115,179,31]},{"l":3,"k":"s","p":[921,197,38,919,202,39,916,208,39,915,213,39,915,219,38,915,225,37,915,232,37,915,238,36,916,244,36,917,249,36,917,255,36,917,261,36,918,267,36,919,273,37,920,279,37,921,285,37,921,291,37,923,297,37,923,303,37,925,309,37,926,315,37,927,321,37,929,327,37,930,332,37,931,338,36,933,344,36,934,350,36,935,356,36,937,362,36,939,368,35,940,373,35,942,379,35,944,385,35,945,391,34,947,396,34,948,402,34,950,408,33,952,414,33,954,419,32,956,425,32,958,431,31,960,437,31,961,442,30,963,448,30,965,454,29,967,459,28,969,465,28,971,471,27,973,477,26,975,482,25,977,488,24,981,492,23,986,496,21,992,497,19,998,497,17,1004,496,16,1009,493,15,1013,489,15,1018,485,16,1023,481,16,1027,477,17,1032,474,18,1037,470,19,1042,467,20,1047,464,21,1053,461,22,1058,458,24,1063,455,26,1068,452,29,1072,447,31,1076,442,34,1077,437,35,1077,431,37,1075,425,37,1072,420,38,1069,415,38,1065,409,38,1062,404,38,1059,399,39,1056,394,39,1053,389,39,1050,384,39,1046,379,39,1043,374,39,1040,369,40,1036,364,40,1033,359,41,1031,353,42,1029,347,43,1028,342,43,1027,337,44,1028,343,43,1029,348,42,1031,354,41,1034,360,41,1037,365,40,1040,370,40,1043,375,39,1047,380,39,1050,385,39,1053,390,39,1056,395,39,1060,400,39,1063,405,38,1066,410,38,1069,415,38,1072,421,38,1075,426,37,1077,432,37,1077,438,35,1075,443,33,1072,448,31,1067,452,28,1062,456,26,1057,459,24,1052,461,22,1046,464,21,1041,467,20,1036,471,19,1031,474,18,1027,478,17,1022,482,16,1017,486,15,1013,489,15,1008,493,15,1003,496,16,997,497,17,991,497,19,985,495,21,980,492,23,977,487,24,974,481,25,972,475,26,971,470,27,969,464,28,967,458,28,968,460,28,969,465,28,971,471,27,973,477,27,975,482,26,977,488,26,979,494,25,982,499,25,983,505,24,984,511,23,985,517,22,987,523,22,988,528,22,989,534,23,989,540,24,989,546,26,989,552,29,987,558,32,985,564,34,981,568,37,977,572,39]},{"l":3,"k":"t","p":[993,294,8,986,299,8,980,307,8,978,315,8]},{"l":4,"k":"s","p":[1026,335,45,1027,340,44,1029,346,43,1030,352,42,1033,358,41,1036,363,40,1039,369,40,1042,374,39,1046,379,39,1049,384,39,1053,389,39,1056,394,39,1059,399,39,1062,404,38,1065,410,38,1069,415,38,1072,420,38,1075,425,39,1078,431,39,1080,436,39,1082,442,39,1086,447,39,1090,452,39,1093,457,39,1096,462,38,1098,468,38,1101,473,38,1103,479,37,1106,484,37,1110,489,37,1112,495,36,1115,500,36,1118,506,35,1120,511,35,1123,517,35,1126,522,35,1128,528,35,1130,534,34,1133,539,34,1135,545,34,1137,551,34,1140,556,34,1142,562,34,1144,568,34,1146,573,34,1148,579,33,1149,585,32,1148,591,31,1147,597,30]},{"l":4,"k":"s","p":[1027,332,44,1032,330,42,1037,327,40,1042,324,37,1048,321,35,1054,319,33,1059,318,31,1065,317,30,1071,317,30,1077,317,29,1083,316,29,1089,315,30,1095,315,30,1101,315,30,1107,315,30,1113,315,30,1119,315,30,1125,315,30,1132,315,30,1138,315,30,1144,315,30,1150,315,30,1156,315,30,1162,315,30,1168,315,30,1174,315,30,1180,315,31,1186,315,31,1192,315,31,1198,315,32,1204,315,32,1210,315,33,1216,316,33,1222,317,34,1228,318,34,1234,320,33,1237,324,32,1237,330,30,1235,336,27,1234,342,24,1232,347,21,1229,353,19,1226,358,18,1222,362,17,1218,367,17,1214,371,18,1210,376,19,1207,381,19,1204,386,21,1200,391,22,1198,397,23,1196,402,25,1194,408,26,1193,414,28,1191,420,30,1190,426,31,1189,432,33,1189,438,35,1189,444,36,1190,450,38,1192,456,39,1194,461,40,1196,467,41,1199,472,42,1202,477,43,1205,482,43,1209,487,43,1213,491,43,1218,495,43,1223,499,42,1228,502,42,1233,505,41,1238,508,40,1244,511,39,1249,514,39,1254,516,38,1260,519,38,1266,521,37,1271,522,37,1277,524,36,1283,526,35,1289,528,35,1295,529,34,1300,530,34,1306,532,33,1312,533,32,1318,533,32,1324,533,31,1330,533,30,1336,533,29,1342,533,28,1348,533,27,1354,532,26,1360,531,25,1366,530,24,1372,529,22,1378,527,21,1384,526,20,1390,524,18,1395,522,17,1401,520,16,1406,517,14,1412,514,13,1417,511,12,1422,508,11,1427,505,11,1431,501,11,1435,496,11,1438,491,13,1441,485,14,1442,480,16,1444,474,19,1446,468,21,1447,462,24,1448,456,26,1449,450,29,1449,444,31,1449,438,33,1448,432,34,1446,427,35,1443,421,35,1441,416,35,1438,410,35,1435,405,36,1433,399,36,1430,394,36,1428,389,36,1425,383,36,1422,378,36,1419,373,37,1416,367,37,1413,362,38,1409,357,38,1406,352,38,1404,347,38,1402,341,38,1400,335,38,1397,330,38,1394,325,38,1391,320,39,1388,314,39,1385,309,39,1382,304,40,1378,299,40,1375,294,41,1372,289,41,1369,283,41,1366,279,42,1362,274,42,1359,269,42,1355,264,42,1352,259,43]},{"l":4,"k":"s","p":[1085,446,38,1090,449,36,1096,449,33,1102,449,30,1108,448,26,1114,445,23,1119,442,20,1125,440,18,1131,438,17,1137,436,16,1143,435,16,1149,434,16,1155,433,17,1161,433,19,1167,433,21,1173,434,24,1179,436,28,1183,440,31,1187,444,34,1190,450,36,1192,456,38,1194,461,40,1196,467,41,1199,472,42,1202,478,43,1204,483,44]},{"l":4,"k":"drip","p":[1071,496,6,1071,503,6,1071,510,6,1071,517,6,1071,525,6,1071,532,6,1071,539,6,1071,546,6]},{"l":4,"k":"drip","p":[1196,521,6,1196,528,6,1196,534,6,1196,541,6,1196,547,6,1196,554,6,1196,560,6,1196,567,6,1196,573,6,1196,580,6,1196,586,6,1196,593,6,1196,599,6,1196,606,6]},{"l":4,"k":"t","p":[1152,183,8,1155,176,8,1158,169,8,1156,162,8,1150,158,8,1143,155,8]},{"l":4,"k":"t","p":[1130,629,8,1133,636,8,1134,643,8,1132,651,8,1129,658,8,1126,665,8]},{"l":5,"k":"s","p":[1251,314,37,1246,317,36,1241,320,35,1238,325,33,1237,331,30,1235,337,27,1233,343,24,1232,348,21,1229,354,19,1225,359,18,1221,363,18,1217,367,18,1213,372,18,1210,377,19,1206,382,20,1203,387,21,1200,392,22,1198,398,23,1196,403,25,1194,409,26,1192,415,28,1191,421,30,1189,427,32,1189,433,33,1189,439,35,1189,445,37,1191,451,38,1192,457,39,1194,462,40,1197,468,41,1200,473,42,1202,479,43,1205,484,44,1209,488,44,1213,492,44,1218,496,43,1223,499,42,1229,502,41,1234,505,41,1239,508,40,1244,511,39,1250,514,39,1255,517,38,1261,519,38,1266,521,37,1272,523,37,1278,525,36,1284,526,35,1290,528,35,1295,529,34,1301,531,33,1307,532,33,1313,533,32,1319,533,31,1325,533,31,1331,533,30,1337,533,29,1343,533,28,1349,533,27,1355,532,26,1361,531,25,1367,530,23,1373,529,22,1379,527,21,1385,526,19,1391,524,18,1396,522,17,1402,519,15,1407,517,14,1412,514,13,1418,511,12,1423,508,11,1428,504,10,1432,500,11,1436,495,12,1439,490,13,1441,484,15,1443,479,17,1445,473,19,1446,467,22,1447,461,24,1448,455,27,1449,449,30,1449,443,32,1449,437,33,1447,431,35,1445,426,35,1443,420,35,1440,415,35,1438,409,36,1435,404,36,1432,398,36,1430,393,36,1427,388,36,1424,382,36,1421,377,37,1419,372,37,1416,366,37,1412,361,38,1409,356,38,1406,351,38,1404,345,38,1402,340,38,1399,334,38,1396,329,38,1393,324,38,1390,319,39,1387,313,39,1384,308,40,1381,303,40,1378,298,40,1375,293,41,1372,288,41,1368,283,41]},{"l":5,"k":"s","p":[1350,257,43,1354,262,43,1357,267,42,1361,272,42,1364,277,42,1368,282,42,1371,287,41,1374,292,41,1377,298,40,1381,303,40,1384,308,40,1387,313,39,1390,319,39,1393,324,38,1396,330,38,1399,335,38,1401,341,38,1404,346,38,1406,352,38,1409,357,38,1413,362,38,1416,367,37,1419,373,37,1422,378,36,1425,384,36,1428,389,36,1430,395,36,1433,400,36,1436,405,36,1438,411,35,1441,417,35,1443,422,35,1446,428,35,1448,433,35]},{"l":5,"k":"t","p":[1347,209,8,1354,206,8,1361,207,8,1367,212,8]},{"l":5,"k":"t","p":[1329,310,8,1322,311,8,1315,311,8,1308,312,10,1301,313,11]},{"l":5,"k":"t","p":[1287,414,9,1294,413,11,1301,412,14,1308,411,18,1315,411,22,1322,411,25,1329,411,28,1336,411,30,1343,409,31]},{"l":5,"k":"t","p":[1351,612,8,1357,609,8,1363,605,8,1369,601,8,1375,597,9,1381,593,11,1387,589,12,1393,586,13,1399,582,14,1405,579,15,1411,575,16,1418,572,16,1423,567,15,1425,561,13,1428,554,11,1430,547,9,1433,541,8]},{"l":5,"k":"t","p":[1346,415,32,1350,420,32,1355,426,31,1360,432,30,1365,437,29,1370,443,28,1374,449,26,1378,455,24,1382,461,22,1384,468,20,1385,475,17,1385,483,14,1384,490,12,1383,497,9]},{"l":5,"k":"t","p":[1348,403,22,1351,396,20,1354,389,18,1358,382,15,1362,375,12,1366,369,9]},{"l":6,"k":"s","p":[1522,173,18,1519,178,19,1516,183,20,1513,188,21,1509,193,23,1506,198,24,1503,204,26,1501,209,27,1498,214,29,1496,220,30,1494,226,32,1493,232,33,1492,238,35,1491,244,36,1490,250,36,1489,256,37,1489,262,38,1489,268,38,1490,274,38,1491,280,38,1493,286,38,1494,292,38,1495,298,38,1497,304,38,1498,310,38,1500,315,38,1502,321,37,1504,327,37,1506,333,37,1508,338,37,1510,344,37,1512,350,36,1514,355,36,1516,361,36,1518,367,36,1520,373,36,1521,378,36,1523,384,36,1525,390,35,1527,396,35,1528,402,35,1529,408,34,1529,414,33,1529,420,31,1528,426,29,1525,431,26,1520,435,23,1515,438,19,1509,439,14,1503,439,10,1497,438,7,1491,437,6,1485,437,7,1479,437,10,1473,437,14,1467,437,18,1461,437,22,1455,437,24,1456,437,24,1462,437,21,1468,437,18,1474,437,13,1480,437,9,1486,437,7,1492,437,6,1498,438,7,1503,441,10,1508,445,14,1512,450,17,1513,456,20,1512,462,21,1510,467,22,1507,472,22,1503,477,21,1500,482,20,1496,487,20,1492,492,19,1488,497,18,1485,501,18,1480,506,17,1476,510,17,1473,515,18,1469,520,19,1467,526,21,1465,531,23,1465,537,26,1464,543,28]},{"l":6,"k":"s","p":[1327,538,28,1332,534,28,1337,533,28,1344,533,27,1350,533,27,1355,532,26,1361,531,25,1367,530,23,1373,529,22,1379,527,21,1385,526,19,1391,524,18,1396,522,17,1402,519,15,1407,517,14,1413,514,13,1418,511,12,1423,508,11,1428,504,10,1432,500,11,1436,495,12,1439,490,13,1441,484,15,1443,478,17,1445,473,19,1446,467,22,1447,461,24,1448,455,25,1450,449,26,1453,444,26,1457,440,24,1462,437,21,1468,437,17,1475,437,12,1481,437,9,1487,437,6,1493,437,6,1498,439,7,1504,441,10,1509,445,14,1512,450,17,1513,456,20,1512,462,21,1510,467,22,1506,473,22,1503,478,21,1500,482,20,1496,487,20,1492,492,19,1488,497,18,1485,501,18,1480,506,17,1476,510,17,1473,515,18,1469,520,19,1467,525,21,1465,531,23,1465,537,25,1465,543,26,1471,545,26,1477,545,26,1483,545,25,1489,545,24,1495,544,24,1501,543,24,1507,541,24,1512,540,24,1518,538,24,1524,537,24,1530,536,24,1536,534,25,1542,533,25,1548,533,25,1554,532,26,1560,531,26,1566,531,26,1572,530,26,1578,529,27,1584,529,27,1590,529,28,1596,529,28,1602,530,28,1608,531,28,1614,531,28,1620,532,28,1626,533,28,1631,535,28,1638,535,27,1644,536,27,1649,537,27,1655,537,27,1661,538,28,1667,539,29,1673,539,30,1679,539,31]},{"l":6,"k":"t","p":[1453,575,8,1445,573,9,1435,573,11,1427,571,13]},{"l":7,"k":"s","p":[1641,225,41,1640,231,43,1640,237,44,1642,242,45,1644,248,45,1646,254,44,1646,260,42,1645,266,39,1645,272,36,1645,278,32,1645,284,29,1644,290,25,1643,296,22,1643,302,18,1642,308,15,1640,314,13,1639,319,11,1637,325,9,1636,331,7,1635,337,6,1635,343,6,1634,349,6,1634,355,7,1637,360,10,1641,365,14,1644,370,18,1645,376,23,1645,382,27,1644,388,31,1641,394,34,1640,400,37,1639,406,39,1641,411,39,1644,417,39,1647,422,39,1649,428,39,1652,433,38,1655,438,37,1658,444,37,1661,449,36,1664,454,36,1667,459,35,1670,464,35,1673,470,35,1676,475,34,1679,480,34,1682,485,34,1685,491,34,1688,496,35,1691,501,36,1694,506,37,1696,512,38,1698,518,40,1699,524,42,1701,529,43]},{"l":7,"k":"s","p":[1644,249,47,1643,246,47,1646,253,47]},{"l":7,"k":"drip","p":[1614,266,6,1614,273,6,1614,280,6,1614,286,6,1614,293,6,1614,300,6,1614,307,6,1614,314,6,1614,321,6,1614,327,6,1614,334,6,1614,341,6]},{"l":7,"k":"drip","p":[1673,553,6,1673,560,6,1673,567,6,1673,573,6,1673,580,6,1673,587,6,1673,594,6,1673,600,6,1673,607,6,1673,614,6,1673,621,6,1673,627,6,1673,634,6,1673,641,6]},{"l":7,"k":"t","p":[1643,179,8,1651,177,8,1660,177,8,1666,183,8]},{"l":8,"k":"s","p":[1871,314,36,1866,312,36,1861,309,36,1855,307,35,1849,305,34,1844,304,33,1838,303,32,1832,303,30,1826,303,28,1820,303,26,1814,305,24,1809,308,22,1804,311,21,1799,315,21,1795,320,22,1793,325,23,1791,331,25,1789,337,27,1789,343,29,1789,349,31,1789,355,34,1791,361,35,1793,366,37,1796,372,38,1799,377,38,1802,382,39,1806,387,39,1809,391,39,1813,396,38,1815,402,36,1815,408,34,1816,414,32,1817,420,30,1819,425,29,1821,431,27,1823,437,26,1825,442,25,1828,448,24,1830,453,23,1833,458,22,1836,464,21,1838,469,21,1839,475,20,1839,481,21,1838,487,22,1835,493,24,1833,498,26,1829,503,29,1825,507,32,1820,510,34,1814,511,36,1808,510,37,1802,508,38,1797,505,38,1793,501,38,1788,497,38,1784,493,38,1779,489,38,1774,486,37,1769,482,36,1764,480,34,1758,479,31,1752,480,27,1747,482,23,1742,486,18,1738,490,15,1733,494,12,1728,497,12,1723,501,14,1719,505,17,1713,507,21,1707,507,25,1701,506,28,1696,503,31,1692,499,32,1688,494,33,1685,489,34,1682,484,34,1679,479,34,1675,474,35,1672,469,35,1669,464,35,1666,458,35,1663,453,36,1660,448,36,1657,443,37,1654,438,37,1652,432,38,1649,427,39,1646,421,39,1644,416,40,1641,411,40,1643,415,40,1646,420,39,1648,425,39,1651,431,38,1654,436,37,1656,441,37,1659,446,36,1663,452,36,1665,457,36,1668,462,35,1671,467,35,1674,472,35,1677,478,35,1680,483,34,1684,488,34,1687,493,35,1690,498,35,1693,503,36,1695,509,37,1697,514,38,1699,520,39,1700,526,39,1702,524,37,1705,519,33,1709,515,29,1714,510,24,1718,506,19,1722,502,15,1727,498,12,1732,495,12,1736,491,14,1741,487,17,1745,483,22,1751,480,26,1756,479,30,1762,479,33,1768,481,36,1773,484,37,1778,488,38,1783,492,38,1787,496,38,1792,500,38,1796,504,39,1801,507,39,1806,511,40,1811,514,40,1816,517,40,1822,519,40,1827,522,39,1832,525,38,1837,528,36,1843,530,35,1848,533,35,1850,533,35,1844,531,35,1839,528,34,1834,524,34,1831,519,33,1829,514,32,1829,508,30,1831,502,28,1834,497,25,1836,491,23,1838,485,22,1839,480,21,1839,474,20,1838,468,21,1835,462,22,1832,457,23,1830,452,24,1827,446,25,1825,440,26,1823,435,27,1821,429,28,1819,424,29,1817,418,31,1816,412,33,1815,406,35,1814,400,37,1812,395,38,1808,390,39,1805,385,39,1801,380,39,1798,375,38,1795,370,37,1793,365,36,1790,359,35,1789,353,33,1789,347,31,1789,341,28,1790,335,26,1791,329,24,1794,324,22,1796,319,21,1800,314,21,1805,310,21,1810,307,23,1815,305,25,1821,303,27,1827,303,29,1833,303,30,1839,303,32,1845,304,33,1851,306,34,1857,308,35,1862,310,36,1868,313,36,1873,315,37,1878,318,37,1884,321,37,1889,324,38,1894,327,38,1899,330,38,1904,333,38,1909,337,38,1914,340,38,1918,344,38,1923,348,37,1927,352,37,1932,356,37,1936,360,37,1940,364,36,1945,369,36,1949,373,36,1953,377,35,1957,382,35,1961,386,34,1964,391,34,1968,396,33,1972,401,32,1975,406,32,1978,411,31,1981,416,31,1984,422,31,1986,427,30,1988,433,30,1991,438,29,1993,444,29,1996,449,29,1997,450,29,1994,445,29,1991,439,29,1989,434,30,1987,428,30,1984,423,31,1982,417,31,1979,412,31,1976,407,32,1972,402,32,1969,397,33,1965,392,34,1962,388,34,1958,383,35,1954,378,35,1951,373,36,1947,369,36,1942,365,37,1938,361,37,1933,357,37,1928,353,37,1924,350,38,1919,345,38,1915,341,38,1910,337,38,1905,334,38,1900,331,38,1895,328,38,1890,324,38,1885,322,37,1880,319,37,1875,316,37]},{"l":8,"k":"s","p":[1871,314,36,1866,312,36,1861,309,36,1855,307,35,1849,305,34,1843,304,33,1837,303,32,1831,303,30,1825,303,28,1819,303,26,1814,305,24,1808,308,22,1803,311,21,1799,315,21,1795,320,22,1793,326,23,1791,331,25,1789,337,27,1789,343,29,1789,349,32,1790,355,34,1791,361,36,1793,367,37,1796,372,38,1799,377,38,1803,382,39,1806,387,39,1810,392,39,1813,397,38,1815,403,36,1815,409,34,1816,414,32,1818,420,30,1819,426,28,1822,432,27,1824,437,26,1826,443,25,1828,449,24,1831,454,23,1834,459,22,1836,465,21,1838,470,20,1839,476,20,1839,482,21,1837,488,23,1835,494,25,1832,499,27,1829,504,30,1826,509,33,1823,514,36,1824,520,36,1828,522,36,1827,516,35,1827,510,32,1829,504,29,1832,499,27,1835,493,24,1837,488,22,1839,482,21,1839,476,20,1838,470,20,1836,464,21,1833,459,22,1831,454,23,1828,448,24,1826,443,25,1824,437,26,1822,431,27,1819,426,28,1818,420,30,1816,414,32,1815,408,34,1815,402,36,1813,396,38,1810,391,39,1806,387,39,1802,382,39,1799,377,38,1796,372,38,1793,366,37,1791,361,35,1789,355,34,1789,349,31,1789,343,29,1789,337,27,1791,331,25,1793,325,23,1796,320,22,1799,315,21,1804,311,21,1809,308,22,1814,305,24,1820,303,26,1826,303,28,1832,303,30,1838,303,32,1844,304,33,1850,305,34,1855,307,35,1861,310,36,1866,312,36,1872,315,37,1877,317,37,1883,320,37,1888,323,38,1893,326,38,1898,329,38,1903,333,38,1908,336,38,1913,340,38,1918,344,38,1922,348,37,1926,352,37,1931,356,37,1936,360,37,1940,364,36,1944,368,36,1948,372,36,1953,377,35,1957,381,35,1960,386,34,1964,391,34,1968,395,33,1971,400,32,1975,405,32,1978,410,31,1981,416,31,1983,421,31,1986,426,30,1988,432,30,1989,434,30]},{"l":8,"k":"drip","p":[1798,549,6,1798,556,6,1798,563,6,1798,570,6,1798,576,6,1798,583,6,1798,590,6,1798,597,6,1798,604,6,1798,610,6,1798,617,6,1798,624,6,1798,631,6]},{"l":8,"k":"drip","p":[1969,446,6,1969,453,6,1969,461,6,1969,468,6,1969,476,6,1969,483,6,1969,491,6,1969,498,6]},{"l":8,"k":"t","p":[1721,469,8,1721,462,10,1721,455,13,1721,448,17,1721,441,20,1722,434,24,1724,427,27,1726,421,29,1725,414,31,1724,407,31,1722,400,31,1721,393,31,1721,386,30,1721,379,29,1722,372,28,1723,365,27,1724,358,25,1725,351,24,1726,344,23,1728,337,22,1730,330,21,1732,324,20,1735,317,19,1738,311,18,1742,305,17,1746,299,16,1750,293,14,1754,288,13,1759,283,12,1764,278,11,1770,274,10,1776,270,9,1782,266,8,1788,262,8,1795,260,8,1802,259,8,1808,257,8,1815,258,8]},{"l":8,"k":"t","p":[1775,442,8,1769,438,9,1761,435,12,1754,432,16,1747,429,20,1740,426,24,1733,424,27]},{"l":8,"k":"t","p":[1747,525,8,1748,532,8,1750,538,8,1749,545,8,1746,552,8,1743,558,8,1739,564,8,1734,569,8,1729,574,8,1723,577,8,1716,577,8,1709,577,8]},{"l":8,"k":"t","p":[1869,567,8,1876,565,8,1883,563,10,1890,561,13,1896,557,15,1902,552,16,1904,545,16,1900,539,15,1897,532,12,1892,526,10,1888,521,8]},{"l":8,"k":"t","p":[1956,573,8,1955,566,10,1952,559,12,1947,553,16,1941,550,18,1933,549,21,1926,549,22,1918,548,23,1911,549,24]},{"l":8,"k":"t","p":[2001,486,10,2006,490,11,2009,496,11,2009,503,11,2008,510,10,2006,517,9,2004,524,8,2000,529,8,1994,534,9,1988,537,10,1981,539,11,1974,542,13,1967,543,14,1961,545,16,1954,546,17,1947,547,18]}];
+
+  const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  const art = document.getElementById("art");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rnd = Math.random, gauss = () => rnd() + rnd() + rnd() + rnd() - 2;
+  const ease = x => x * x * (3 - 2 * x);
+  // everything lives in the artwork's own pixel space, so resizing never restarts or breaks it
+  let dpr = 1, W = 0, H = 0, ax = 0, ay = 0, aw = 0, ah = 0, MW = 2048, MH = 728;
+  let mask, mctx, legs = [], Wtot = 0, SPRAY = 3500, li = 0, parts = [], stamps = [], mistSprite;
+  let done = false, last = 0, T = 0, hand = null, kPrev = 0, canOn = false;
+
+  function finish() {                       // show the untouched PNG, drop the canvas
+    if (done) return; done = true;
+    art.style.opacity = 1; cv.style.display = "none";
+  }
+
+  /* a pre-rendered puff of spray: dense in the middle, grainy and thin at the edge */
+  function makeStamp(S) {
+    const c = document.createElement("canvas"); c.width = c.height = S;
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; const rm = S / 2 - 1;
+    for (let n = 0, N = Math.round(S * S * .05); n < N;) {
+      const r = rm * Math.sqrt(rnd());
+      if (rnd() > 1 - (r / rm) ** 2) continue;
+      const a = rnd() * 6.283, d = 1.2 + rnd() * 2.4;
+      g.globalAlpha = .3 + rnd() * .7;
+      g.fillRect(S / 2 + Math.cos(a) * r, S / 2 + Math.sin(a) * r, d, d); n++;
+    }
+    return c;
+  }
+  function makeMist() {
+    const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(226,232,255,.6)"); gr.addColorStop(1, "rgba(226,232,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c;
+  }
+
+  /* where the artwork currently sits on screen (re-read every frame, so any resize just works) */
+  function place() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = Math.round(innerWidth * dpr); H = Math.round(innerHeight * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const r = art.getBoundingClientRect();
+    ax = r.left * dpr; ay = r.top * dpr; aw = r.width * dpr; ah = r.height * dpr;
+  }
+
+  /* turn the strokes into one timeline: write a stroke, lift, move, write the next */
+  function plan() {
+    const f = MW / 2048; let px = null, py = 0, pr = 0;
+    for (const st of STROKES) {
+      const p = st.p, n = p.length / 3;
+      if (n < 2) continue;
+      const x0 = p[0] * f, y0 = p[1] * f, r0 = p[2] * f;
+      if (px !== null) legs.push({ x0: px, y0: py, r0: pr, x1: x0, y1: y0, r1: r0, on: false, w: CONFIG.hopWeight + Math.hypot(x0 - px, y0 - py) * .2 });
+      let L = 0; for (let j = 1; j < n; j++) L += Math.hypot(p[j * 3] - p[j * 3 - 3], p[j * 3 + 1] - p[j * 3 - 2]) * f;
+      let acc = 0;
+      for (let j = 1; j < n; j++) {
+        const xa = p[j * 3 - 3] * f, ya = p[j * 3 - 2] * f, xb = p[j * 3] * f, yb = p[j * 3 + 1] * f, len = Math.hypot(xb - xa, yb - ya);
+        const s = (acc + len / 2) / L, v = CONFIG.endSlow + (1 - CONFIG.endSlow) * Math.sin(Math.PI * s);   // slow at the ends, quick in the middle
+        legs.push({ x0: xa, y0: ya, r0: p[j * 3 - 1] * f, x1: xb, y1: yb, r1: p[j * 3 + 2] * f, on: true, w: len / v });
+        acc += len;
+      }
+      px = p[n * 3 - 3] * f; py = p[n * 3 - 2] * f; pr = p[n * 3 - 1] * f;
+    }
+    let acc = 0; for (const l of legs) { l.c = acc; acc += l.w; } Wtot = acc;
+    SPRAY = Wtot / CONFIG.handSpeed;
+  }
+
+  function nozzle(u) {                       // raw hand position + brush size at u = 0..1 through the whole spray
+    const w = u * Wtot;
+    while (li < legs.length - 1 && w >= legs[li].c + legs[li].w) li++;
+    const l = legs[li], f = Math.min(1, Math.max(0, (w - l.c) / l.w));
+    return { x: l.x0 + (l.x1 - l.x0) * f, y: l.y0 + (l.y1 - l.y0) * f, r: l.r0 + (l.r1 - l.r0) * f, on: l.on };
+  }
+
+  function spawn(pos, hiss, spraying, dt) {
+    const R = Math.max(18, pos.r), cnt = r => { const n = r * dt / 16.7; return (n | 0) + (rnd() < n % 1 ? 1 : 0); };
+    for (let k = cnt(CONFIG.softMist); k > 0; k--) if (rnd() < hiss) {
+      const a = rnd() * 6.283, d = R * Math.sqrt(rnd()) * 1.2;
+      parts.push({ type: 0, x: pos.x + Math.cos(a) * d, y: pos.y + Math.sin(a) * d, vx: Math.cos(a) * R * .006, vy: Math.sin(a) * R * .006 - R * .001, age: 0, life: 450 + rnd() * 350, s: R * (2 + rnd() * 3), a: .045 });
+    }
+    if (spraying) for (let k = cnt(CONFIG.specks); k > 0; k--) {
+      const a = rnd() * 6.283, d = R * (1 + rnd() * 2.2), v = R * .012 * (rnd() + .3);
+      parts.push({ type: 1, x: pos.x + Math.cos(a) * d, y: pos.y + Math.sin(a) * d, vx: Math.cos(a) * v, vy: Math.sin(a) * v, age: 0, life: 220 + rnd() * 300, s: R * (.03 + rnd() * .05), a: .55, c: rnd() < .25 ? "#ff7ab6" : "#e6ecff" });
+    }
+  }
+  function drawParts(dt) {
+    const sx = aw / MW;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.age += dt;
+      if (p.age >= p.life) { parts.splice(i, 1); continue; }
+      p.x += p.vx * dt / 16.7; p.y += p.vy * dt / 16.7;
+      const X = ax + p.x * sx, Y = ay + p.y * sx;
+      ctx.globalAlpha = p.a * (1 - p.age / p.life);
+      if (p.type === 0) { const s = p.s * sx; ctx.drawImage(mistSprite, X - s / 2, Y - s / 2, s, s); }
+      else { const s = Math.max(dpr, p.s * sx); ctx.fillStyle = p.c; ctx.fillRect(X, Y, s, s); }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop(now) {
+    if (done) return;
+    const dt = Math.max(0, Math.min(now - last, 40)); last = now;
+    requestAnimationFrame(loop);
+    place();
+    if (document.hidden || aw < 8) return;                        // the clock only runs while the page can actually be seen
+    T += dt;
+    const t = T, sp0 = CONFIG.pauseMs + CONFIG.hissMs, sp1 = sp0 + SPRAY, end = sp1 + CONFIG.settleMs;
+    if (t >= end + CONFIG.tailMs) return finish();
+    ctx.clearRect(0, 0, W, H);
+    if (t < CONFIG.pauseMs) return;                               // pure black
+
+    if (!hand) { const p0 = nozzle(0); hand = { x: p0.x, y: p0.y, r: p0.r }; }
+    if (t < sp0) {                                                // hiss: mist only, can resting at the start of the first stroke
+      spawn(hand, ease((t - CONFIG.pauseMs) / CONFIG.hissMs), false, dt);
+    } else if (t < sp1 + 60) {
+      const SUB = 6, k = 1 - Math.exp(-(dt / SUB) / CONFIG.handSmoothMs);
+      mctx.globalAlpha = CONFIG.paintAlpha;
+      for (let s = 1; s <= SUB; s++) {                            // several small hand steps per frame keep the line smooth
+        const tt = t - dt + dt * s / SUB, raw = nozzle(Math.min(1, Math.max(0, (tt - sp0) / SPRAY)));
+        const ox = hand.x, oy = hand.y;
+        hand.x += (raw.x - hand.x) * k; hand.y += (raw.y - hand.y) * k; hand.r += (raw.r - hand.r) * k;
+        canOn = raw.on;
+        if (!raw.on) continue;                                    // can lifted between strokes
+        const n = Math.min(14, Math.max(1, Math.ceil(Math.hypot(hand.x - ox, hand.y - oy) / Math.max(1.5, hand.r * CONFIG.stampSpacing))));
+        for (let j = 0; j < n; j++) {                             // puffs laid down evenly along the stroke
+          const q = (j + 1) / n, x = ox + (hand.x - ox) * q + gauss() * hand.r * .06, y = oy + (hand.y - oy) * q + gauss() * hand.r * .06;
+          const a = rnd() * 6.283, c = Math.cos(a), sn = Math.sin(a), size = hand.r * CONFIG.brushSize * (.9 + rnd() * .2);   // wide where the letter is thick
+          mctx.setTransform(c, sn, -sn, c, x, y);
+          mctx.drawImage(stamps[(rnd() * stamps.length) | 0], -size / 2, -size / 2, size, size);
+        }
+      }
+      mctx.setTransform(1, 0, 0, 1, 0, 0); mctx.globalAlpha = 1;
+      spawn(hand, 1, t < sp1, dt);
+    }
+    if (t >= sp1 && kPrev < 1) {                                  // end: faint overspray settles into the exact artwork
+      const k = ease(Math.min(1, (t - sp1) / CONFIG.settleMs));
+      mctx.fillStyle = "#fff"; mctx.globalAlpha = k >= 1 ? 1 : 1 - (1 - k) / (1 - kPrev);
+      mctx.fillRect(0, 0, MW, MH); mctx.globalAlpha = 1; kPrev = k;
+    }
+
+    ctx.globalCompositeOperation = "source-over";                 // artwork, kept only where paint has landed
+    ctx.drawImage(art, ax, ay, aw, ah);
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(mask, ax, ay, aw, ah);
+    ctx.globalCompositeOperation = "source-over";
+    drawParts(dt);
+    if (canOn && t >= sp0 && t < sp1 + 60) {                      // the spray can itself: a soft aerosol cloud that travels with the nozzle
+      const sx = aw / MW, s = Math.max(26, hand.r * 4.2) * sx;
+      ctx.globalAlpha = .17; ctx.drawImage(mistSprite, ax + hand.x * sx - s / 2, ay + hand.y * sx - s / 2, s, s); ctx.globalAlpha = 1;
+    }
+  }
+
+  function start() {
+    try {
+      MW = art.naturalWidth || 2048; MH = art.naturalHeight || 728;
+      mask = document.createElement("canvas"); mask.width = MW; mask.height = MH; mctx = mask.getContext("2d");
+      plan();
+      if (!legs.length) return finish();
+      stamps = [0, 1, 2, 3, 4, 5].map(() => makeStamp(128));
+      mistSprite = makeMist();
+      last = performance.now(); requestAnimationFrame(loop);
+    } catch (e) { finish(); }
+  }
+
+  if (reduce) finish();
+  else (art.decode ? art.decode() : Promise.resolve()).then(start, finish);   // the clock only runs while the landing page is on screen
+})();
+</script>
+</body>
+</html>

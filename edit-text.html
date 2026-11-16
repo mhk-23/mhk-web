@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit page text</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f3f3f1; --fg: #111; --card: #fff; --line: #cfcfca; --accent: #111; --accent-fg: #fff; --muted: #666; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151515; --fg: #f1f1ef; --card: #202020; --line: #3a3a3a; --accent: #f1f1ef; --accent-fg: #111; --muted: #a0a0a0; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 22px; }
+  ol { margin: 0 0 24px; padding-left: 22px; } li { margin: 4px 0; }
+  label { display: block; font-weight: 600; margin: 18px 0 6px; }
+  select, textarea, input[type=text] { width: 100%; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  textarea { min-height: 320px; resize: vertical; line-height: 1.6; }
+  #otherWrap { display: none; } #otherWrap.on { display: block; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 16px; }
+  button { font: inherit; font-weight: 700; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px; padding: 12px 22px; cursor: pointer; }
+  button:hover, button:focus-visible { opacity: .85; outline: none; }
+  #msg { color: var(--muted); }
+  .small { color: var(--muted); font-size: 14px; margin-top: 22px; }
+  .h2 { font-size: 20px; margin: 36px 0 4px; }
+  code { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Edit page text</h1>
+  <p class="lead">Write the text for any page of your site here. Nothing to code.</p>
+  <ol>
+    <li>Pick a page from the list.</li>
+    <li>Type or paste its text. A blank line starts a new paragraph. Web addresses and email addresses turn into links by themselves.</li>
+    <li>Click <b>Save text file</b>. Move the file it downloads, <code>site-text.js</code>, into your site's <code>content</code> folder and replace the old one.</li>
+    <li>Reload your site (Ctrl+Shift+R). You can come back here any time and your text will still be here.</li>
+  </ol>
+
+  <label for="pg">Page</label>
+  <select id="pg"></select>
+  <div id="otherWrap">
+    <label for="other">Folder name of this page (the same name as its folder in images/work-page, in lowercase)</label>
+    <input type="text" id="other" placeholder="for example hippies-x-y2k">
+  </div>
+
+  <label for="tx">Text for this page</label>
+  <textarea id="tx" placeholder="Type or paste the text here..."></textarea>
+
+  <div class="row"><button type="button" id="save">Save text file</button><span id="msg"></span></div>
+  <h2 class="h2">Contact page links</h2>
+  <p class="lead" style="margin-bottom:6px">Paste the link to your profile on each platform. Clicking that name on the Contact page opens it. Leave one empty to switch that link off.</p>
+  <label for="l_instagram">Instagram profile link</label><input type="text" id="l_instagram" placeholder="https://www.instagram.com/yourname">
+  <label for="l_linkedin">LinkedIn profile link</label><input type="text" id="l_linkedin" placeholder="https://www.linkedin.com/in/yourname">
+  <label for="l_behance">Behance profile link</label><input type="text" id="l_behance" placeholder="https://www.behance.net/yourname">
+  <p class="small" style="margin-top:8px">Your email and phone number are already set up. They appear in their own boxes when the mouse is over Email or Phone.</p>
+  <p class="small">Pages that have text: <span id="done">none yet</span></p>
+</main>
+
+<script src="content/site-text.js"></script>
+<script>
+(function () {
+  var PAGES = [["about", "About"], ["contact", "Contact"], ["team-e", "Team-E"], ["tea-party-gone-wrong", "Tea Party Gone Wrong"], ["the-appetite", "The Appetite"],
+    ["strange-studio", "Strange Studio"], ["slow-state", "Slow State"], ["ms-bean", "Ms Bean"], ["killerx", "KillerX"], ["the-label-jenn", "The Label Jenn"],
+    ["symbiotic-nomad", "Symbiotic Nomad"], ["cosmicore", "Cosmicore"], ["comet-x-subway-surfers", "Comet x Subway Surfers"], ["madhubala", "Madhubala"], ["stussy-nike", "Stussy & Nike"]];
+  var store = {}, saved = window.SITE_TEXT || {}, k;
+  for (k in saved) if (typeof saved[k] === "string") store[k] = saved[k];
+  try { var d = JSON.parse(localStorage.getItem("siteTextDraft") || "{}"); for (k in d) if (typeof d[k] === "string") store[k] = d[k]; } catch (e) {}
+  var links = {}, savedL = window.SITE_LINKS || {};
+  ["instagram", "linkedin", "behance"].forEach(function (n) { if (typeof savedL[n] === "string") links[n] = savedL[n]; });
+  try { var dl = JSON.parse(localStorage.getItem("siteLinksDraft") || "{}"); for (k in dl) if (typeof dl[k] === "string") links[k] = dl[k]; } catch (e) {}
+  ["instagram", "linkedin", "behance"].forEach(function (n) {
+    var inp = document.getElementById("l_" + n); inp.value = links[n] || "";
+    inp.addEventListener("input", function () { links[n] = inp.value; try { localStorage.setItem("siteLinksDraft", JSON.stringify(links)); } catch (e) {} msg.textContent = "Not saved to your site yet. Click Save text file."; });
+  });
+  var pg = document.getElementById("pg"), tx = document.getElementById("tx"), other = document.getElementById("other"), ow = document.getElementById("otherWrap"), msg = document.getElementById("msg"), done = document.getElementById("done");
+  var known = {}; PAGES.forEach(function (p) { known[p[0]] = 1; });
+  var extras = Object.keys(store).filter(function (x) { return !known[x]; });
+  extras.forEach(function (x) { PAGES.push([x, x]); });
+  PAGES.push(["__other", "Another page..."]);
+  PAGES.forEach(function (p) { var o = document.createElement("option"); o.value = p[0]; o.textContent = p[1]; pg.appendChild(o); });
+  function key() { if (pg.value !== "__other") return pg.value; return other.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+  function refreshLabels() {
+    var names = [];
+    PAGES.forEach(function (p, i) { var has = p[0] !== "__other" && (store[p[0]] || "").trim(); pg.options[i].textContent = (has ? "\u2713 " : "") + p[1]; if (has) names.push(p[1]); });
+    done.textContent = names.length ? names.join(", ") : "none yet";
+  }
+  function load() { ow.className = pg.value === "__other" ? "on" : ""; var kk = key(); tx.value = kk ? (store[kk] || "") : ""; msg.textContent = ""; }
+  function draft() { try { localStorage.setItem("siteTextDraft", JSON.stringify(store)); } catch (e) {} }
+  pg.addEventListener("change", load);
+  other.addEventListener("input", load);
+  tx.addEventListener("input", function () { var kk = key(); if (!kk) { msg.textContent = "Type the page's folder name above first."; return; } store[kk] = tx.value; draft(); refreshLabels(); msg.textContent = "Not saved to your site yet. Click Save text file."; });
+  document.getElementById("save").addEventListener("click", function () {
+    var out = {}, lk = {}, any = false; Object.keys(links).forEach(function (x) { var v = (links[x] || "").trim(); if (v) lk[x] = v; }); Object.keys(store).forEach(function (x) { var v = (store[x] || "").trim(); if (v) { out[x] = v; any = true; } });
+    var body = "/* This file is written for you by edit-text.html. You don't need to open or change it by hand. */\nwindow.SITE_TEXT = Object.assign(window.SITE_TEXT || {}, " + JSON.stringify(out, null, 2) + ");\nwindow.SITE_LINKS = Object.assign(window.SITE_LINKS || {}, " + JSON.stringify(lk, null, 2) + ");\n";
+    var blob = new Blob([body], { type: "application/javascript" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "site-text.js"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    msg.textContent = (any || Object.keys(lk).length) ? "Downloaded site-text.js. Move it into your content folder (replace the old one), then reload your site." : "Downloaded, but there is no text yet.";
+  });
+  refreshLabels(); load();
+})();
+</script>
+</body>
+</html>
